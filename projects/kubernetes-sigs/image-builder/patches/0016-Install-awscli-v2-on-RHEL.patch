@@ -1,0 +1,45 @@
+diff --git a/images/capi/ansible/roles/providers/tasks/aws.yml b/images/capi/ansible/roles/providers/tasks/aws.yml
+index 6fb4e8a4b..964441f69 100644
+--- a/images/capi/ansible/roles/providers/tasks/aws.yml
++++ b/images/capi/ansible/roles/providers/tasks/aws.yml
+@@ -19,7 +19,10 @@
+   vars:
+     packages:
+       - awscli
+-  when: ansible_distribution != "Amazon"
++  when: ansible_distribution != "Amazon" and ansible_distribution != "RedHat"
++
++- include_tasks: awscliv2.yml
++  when: ansible_distribution == "RedHat"
+ 
+ # Remove after https://github.com/aws/amazon-ssm-agent/issues/235 is fixed.
+ - name: install aws agents RPM on Redhat distributions
+diff --git a/images/capi/ansible/roles/providers/tasks/awscliv2.yml b/images/capi/ansible/roles/providers/tasks/awscliv2.yml
+new file mode 100644
+index 000000000..be9b95c9c
+--- /dev/null
++++ b/images/capi/ansible/roles/providers/tasks/awscliv2.yml
+@@ -0,0 +1,23 @@
++- name: Install AWS CLI
++  yum:
++    name: unzip
++    state: present
++
++- name: Download AWS CLI v2
++  get_url:
++    url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
++    dest: /tmp/awscliv2.zip
++
++- name: Unzip AWS CLI v2
++  unarchive:
++    src: /tmp/awscliv2.zip
++    dest: /tmp
++    remote_src: yes
++
++- name: Install AWS CLI v2
++  command: /tmp/aws/install -i /usr/local/aws-cli -b /usr/local/sbin
++
++- name: Remove temporary files
++  file:
++    path: /tmp/aws*
++    state: absent
