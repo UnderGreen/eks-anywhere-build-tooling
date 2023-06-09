@@ -1,5 +1,16 @@
+From f223db4d6a984909f30705f6c8f08ca036cbe106 Mon Sep 17 00:00:00 2001
+From: Prow Bot <prow@amazonaws.com>
+Date: Fri, 9 Jun 2023 15:47:38 +0000
+Subject: [PATCH] Install awscli v2 client on RHEL
+
+---
+ .../ansible/roles/providers/tasks/aws.yml     |  5 +++-
+ .../roles/providers/tasks/awscliv2.yml        | 23 +++++++++++++++++++
+ 2 files changed, 27 insertions(+), 1 deletion(-)
+ create mode 100644 images/capi/ansible/roles/providers/tasks/awscliv2.yml
+
 diff --git a/images/capi/ansible/roles/providers/tasks/aws.yml b/images/capi/ansible/roles/providers/tasks/aws.yml
-index 6fb4e8a4b..964441f69 100644
+index 1e5592180..e0c80b907 100644
 --- a/images/capi/ansible/roles/providers/tasks/aws.yml
 +++ b/images/capi/ansible/roles/providers/tasks/aws.yml
 @@ -19,7 +19,10 @@
@@ -12,8 +23,8 @@ index 6fb4e8a4b..964441f69 100644
 +- include_tasks: awscliv2.yml
 +  when: ansible_distribution == "RedHat"
  
- # Remove after https://github.com/aws/amazon-ssm-agent/issues/235 is fixed.
- - name: install aws agents RPM on Redhat distributions
+ - name: install aws agents RPM
+   package:
 diff --git a/images/capi/ansible/roles/providers/tasks/awscliv2.yml b/images/capi/ansible/roles/providers/tasks/awscliv2.yml
 new file mode 100644
 index 000000000..be9b95c9c
@@ -43,3 +54,6 @@ index 000000000..be9b95c9c
 +  file:
 +    path: /tmp/aws*
 +    state: absent
+-- 
+2.25.1
+

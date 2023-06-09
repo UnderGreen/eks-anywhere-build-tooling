@@ -1,3 +1,12 @@
+From e6b9f6557a7ef7efaa7daae07fd966f39f7e73dd Mon Sep 17 00:00:00 2001
+From: Prow Bot <prow@amazonaws.com>
+Date: Fri, 9 Jun 2023 15:44:06 +0000
+Subject: [PATCH] Disable package upgrades
+
+---
+ images/capi/ansible/roles/setup/tasks/redhat.yml | 7 -------
+ 1 file changed, 7 deletions(-)
+
 diff --git a/images/capi/ansible/roles/setup/tasks/redhat.yml b/images/capi/ansible/roles/setup/tasks/redhat.yml
 index 464f3ad4b..02619bd3e 100644
 --- a/images/capi/ansible/roles/setup/tasks/redhat.yml
@@ -16,3 +25,6 @@ index 464f3ad4b..02619bd3e 100644
  - name: install baseline dependencies
    yum:
      name: "{{ rpms }}"
+-- 
+2.25.1
+

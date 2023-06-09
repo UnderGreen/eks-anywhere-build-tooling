@@ -1,0 +1,184 @@
+From 342d186b6244cda5a75acea95966914729a55318 Mon Sep 17 00:00:00 2001
+From: Prow Bot <prow@amazonaws.com>
+Date: Fri, 9 Jun 2023 16:24:52 +0000
+Subject: [PATCH] RHEL-8.x support for image-builder
+
+---
+ images/capi/Makefile                            |  4 +++-
+ .../capi/ansible/roles/providers/tasks/aws.yml  | 16 +++-------------
+ .../capi/ansible/roles/sysprep/tasks/redhat.yml |  2 ++
+ images/capi/packer/ami/packer.json              |  8 ++++----
+ images/capi/packer/ami/rhel-8.json              | 15 +++++++++++++++
+ images/capi/packer/goss/goss-vars.yaml          | 17 +++++++++++++++++
+ 6 files changed, 44 insertions(+), 18 deletions(-)
+ create mode 100644 images/capi/packer/ami/rhel-8.json
+
+diff --git a/images/capi/Makefile b/images/capi/Makefile
+index c90bcc2ac..27351afd2 100644
+--- a/images/capi/Makefile
++++ b/images/capi/Makefile
+@@ -285,7 +285,7 @@ NODE_OVA_VSPHERE_BUILD_NAMES		:=	$(addprefix node-ova-vsphere-,$(PLATFORMS_AND_V
+ NODE_OVA_VSPHERE_BASE_BUILD_NAMES		:=	$(addprefix node-ova-vsphere-base-,$(PLATFORMS_AND_VERSIONS))
+ NODE_OVA_VSPHERE_CLONE_BUILD_NAMES		:=	$(addprefix node-ova-vsphere-clone-,$(PLATFORMS_AND_VERSIONS))
+ 
+-AMI_BUILD_NAMES			   ?= ami-centos-7 ami-ubuntu-1804 ami-ubuntu-2004 ami-amazon-2 ami-flatcar ami-windows-2019 ami-windows-2004 ami-rockylinux-8
++AMI_BUILD_NAMES			   ?= ami-centos-7 ami-ubuntu-1804 ami-ubuntu-2004 ami-amazon-2 ami-flatcar ami-windows-2019 ami-windows-2004 ami-rockylinux-8 ami-rhel-8
+ GCE_BUILD_NAMES			   ?= gce-ubuntu-1804 gce-ubuntu-2004
+ 
+ # Make needs these lists to be space delimited, no quotes
+@@ -508,6 +508,7 @@ build-ami-centos-7: ## Builds CentOS 7 AMI
+ build-ami-ubuntu-1804: ## Builds Ubuntu 18.04 AMI
+ build-ami-ubuntu-2004: ## Builds Ubuntu 20.04 AMI
+ build-ami-rockylinux-8: ## Builds RockyLinux 8 AMI
++build-ami-rhel-8: ## Builds RHEL-8 AMI
+ build-ami-flatcar: ## Builds Flatcar
+ build-ami-windows-2019: ## Build Windows Server 2019 AMI Packer config
+ build-ami-windows-2004: ## Build Windows Server 2004 SAC AMI Packer config
+@@ -638,6 +639,7 @@ build-nutanix-all: $(NUTANIX_BUILD_TARGETS) ## Builds all Nutanix image
+ validate-ami-amazon-2: ## Validates Amazon-2 Linux AMI Packer config
+ validate-ami-centos-7: ## Validates CentOS 7 AMI Packer config
+ validate-ami-rockylinux-8: ## Validates RockyLinux 8 AMI Packer config
++validate-ami-rhel-8: ## Validates RHEL-8 AMI Packer config
+ validate-ami-flatcar: ## Validates Flatcar AMI Packer config
+ validate-ami-ubuntu-1804: ## Validates Ubuntu 18.04 AMI Packer config
+ validate-ami-ubuntu-2004: ## Validates Ubuntu 20.04 AMI Packer config
+diff --git a/images/capi/ansible/roles/providers/tasks/aws.yml b/images/capi/ansible/roles/providers/tasks/aws.yml
+index e0c80b907..964441f69 100644
+--- a/images/capi/ansible/roles/providers/tasks/aws.yml
++++ b/images/capi/ansible/roles/providers/tasks/aws.yml
+@@ -24,19 +24,8 @@
+ - include_tasks: awscliv2.yml
+   when: ansible_distribution == "RedHat"
+ 
+-- name: install aws agents RPM
+-  package:
+-    name: "{{ item }}"
+-    state: present
+-  with_items:
+-    - https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+-  when:
+-    - ansible_os_family == "RedHat"
+-    - ansible_distribution != "Amazon"
+-    - ansible_distribution != "Rocky"
+-
+ # Remove after https://github.com/aws/amazon-ssm-agent/issues/235 is fixed.
+-- name: install aws agents RPM on RockyLinux
++- name: install aws agents RPM on Redhat distributions
+   package:
+     name: "{{ item }}"
+     state: present
+@@ -44,7 +33,8 @@
+   with_items:
+     - https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+   when:
+-    - ansible_distribution == "Rocky"
++    - ansible_os_family == "RedHat"
++    - ansible_distribution != "Amazon"
+ 
+ - name: install aws agents RPM
+   package:
+diff --git a/images/capi/ansible/roles/sysprep/tasks/redhat.yml b/images/capi/ansible/roles/sysprep/tasks/redhat.yml
+index 46558cd13..588619233 100644
+--- a/images/capi/ansible/roles/sysprep/tasks/redhat.yml
++++ b/images/capi/ansible/roles/sysprep/tasks/redhat.yml
+@@ -49,6 +49,8 @@
+ 
+ - name: Remove RHEL subscription
+   block:
++    - name: enable repo mgmt with subscription-manager
++      command: subscription-manager config --rhsm.manage_repos=1
+     - name: Remove subscriptions
+       rhsm_repository:
+         name: '*'
+diff --git a/images/capi/packer/ami/packer.json b/images/capi/packer/ami/packer.json
+index 6e0b781c9..a350c549a 100644
+--- a/images/capi/packer/ami/packer.json
++++ b/images/capi/packer/ami/packer.json
+@@ -17,15 +17,14 @@
+           "delete_on_termination": true,
+           "device_name": "{{ user `root_device_name` }}",
+           "iops": "{{ user `iops`}}",
+-          "throughput": "{{ user `throughput` }}",
+           "volume_size": "{{ user `volume_size` }}",
+           "volume_type": "{{ user `volume_type` }}"
+         }
+       ],
+       "metadata_options": {
+         "http_endpoint": "{{ user `http_endpoint` }}",
+-        "http_tokens": "{{ user `http_tokens` }}",
+-        "http_put_response_hop_limit": "{{ user `http_put_response_hop_limit` }}"
++        "http_put_response_hop_limit": "{{ user `http_put_response_hop_limit` }}",
++        "http_tokens": "{{ user `http_tokens` }}"
+       },
+       "name": "{{user `build_name`}}",
+       "profile": "{{ user `aws_profile`}}",
+@@ -133,6 +132,7 @@
+       "vars_inline": {
+         "ARCH": "amd64",
+         "OS": "{{user `distribution` | lower}}",
++        "OS_VERSION": "{{user `distribution_version` | lower}}",
+         "PROVIDER": "amazon",
+         "containerd_version": "{{user `containerd_version`}}",
+         "kubernetes_cni_deb_version": "{{ user `kubernetes_cni_deb_version` }}",
+@@ -171,8 +171,8 @@
+     "encrypted": "false",
+     "existing_ansible_ssh_args": "{{env `ANSIBLE_SSH_ARGS`}}",
+     "http_endpoint": "enabled",
+-    "http_tokens": "required",
+     "http_put_response_hop_limit": "2",
++    "http_tokens": "required",
+     "iam_instance_profile": "",
+     "ib_version": "{{env `IB_VERSION`}}",
+     "iops": "3000",
+diff --git a/images/capi/packer/ami/rhel-8.json b/images/capi/packer/ami/rhel-8.json
+new file mode 100644
+index 000000000..cf86b637c
+--- /dev/null
++++ b/images/capi/packer/ami/rhel-8.json
+@@ -0,0 +1,15 @@
++{
++  "ami_filter_name": "RHEL-8.6.0_HVM-*",
++  "ami_filter_owners": "309956199498",
++  "build_name": "rhel-8",
++  "builder_instance_type": "m5.large",
++  "distribution": "rhel",
++  "distribution_release": "Enterprise",
++  "distribution_version": "8",
++  "epel_rpm_gpg_key": "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8",
++  "redhat_epel_rpm": "https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm",
++  "root_device_name": "/dev/sda1",
++  "source_ami": "",
++  "ssh_username": "ec2-user",
++  "volume_size": "10"
++}
+diff --git a/images/capi/packer/goss/goss-vars.yaml b/images/capi/packer/goss/goss-vars.yaml
+index 45355803e..4db7eedd0 100644
+--- a/images/capi/packer/goss/goss-vars.yaml
++++ b/images/capi/packer/goss/goss-vars.yaml
+@@ -230,6 +230,23 @@ rockylinux:
+       <<: *rh8_rpms
+ rhel:
+   common-package: *common_rpms
++  amazon:
++    package:
++      amazon-ssm-agent:
++    os_version:
++      - distro_version: "8"
++        package:
++          <<: *rh8_rpms
++    command:
++      find -L /usr/local/sbin -maxdepth 1 -type f -executable -printf "%f\n" | grep -Fx 'aws':
++        exit-status: 0
++        stdout: ["aws"]
++        stderr: []
++        timeout: 0
++    service:
++      amazon-ssm-agent:
++        enabled: true
++        running: true
+   ova:
+     package:
+       python2-pip:
+-- 
+2.25.1
+

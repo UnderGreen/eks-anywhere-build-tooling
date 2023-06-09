@@ -1,3 +1,12 @@
+From 04afe7026d660e069cd8204f19c2ee95c28d967f Mon Sep 17 00:00:00 2001
+From: Prow Bot <prow@amazonaws.com>
+Date: Fri, 9 Jun 2023 15:43:20 +0000
+Subject: [PATCH] Set cloudinit feature flags for RHEL
+
+---
+ images/capi/ansible/roles/providers/tasks/main.yml | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
 diff --git a/images/capi/ansible/roles/providers/tasks/main.yml b/images/capi/ansible/roles/providers/tasks/main.yml
 index 09eaeca45..f238b423f 100644
 --- a/images/capi/ansible/roles/providers/tasks/main.yml
@@ -18,3 +27,6 @@ index 09eaeca45..f238b423f 100644
  - name: Ensure chrony is running
    systemd:
      enabled: yes
+-- 
+2.25.1
+
