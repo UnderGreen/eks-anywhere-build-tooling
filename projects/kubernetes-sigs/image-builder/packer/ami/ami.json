@@ -1,9 +1,15 @@
 {
-  "ami_regions": "us-west-2",
-  "aws_region": "us-west-2",
-  "custom_role": "true",
-  "custom_role_names": "{{env `BUILDER_ROOT`}}/ansible/roles/load_additional_files",
-  "ansible_extra_vars": "@{{env `BUILDER_ROOT`}}/packer/ami/ansible_extra_vars.yaml",
-  "volume_size": "25",
-  "manifest_output": "{{env `MANIFEST_OUTPUT`}}"
+   "ami_filter_name": "RHEL-8.8.0_HVM-20230503-x86_64-54-Hourly2-GP2",
+   "ami_filter_owners": "309956199498",
+   "ami_regions": "us-west-2",
+   "aws_region": "us-west-2",
+   "ansible_extra_vars": "@/home/lima.linux/eks-anywhere-build-tooling/projects/kubernetes-sigs/image-builder/packer/ami/ansible_extra_vars.yaml",
+   "builder_instance_type": "c6i.large",
+   "manifest_output": "/home/lima.linux/manifest.json",
+   "root_device_name": "/dev/sda1",
+   "volume_size": "10",
+   "volume_type": "gp2",
+   "skip_create_ami": "false",
+   "build_name": "rhel-8",
+   "extra_rpms": "iptables ebtables bash-completion iproute-tc nfs-utils"
 }
